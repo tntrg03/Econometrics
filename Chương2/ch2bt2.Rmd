@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+author: "Truong Ngoc Trang"
+date: "2023-03-10"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(carData)
+library(car)
+ ch2bt1 <- read_excel("E:/KTL/KTL_01/Chương2/ch2bt1.xlsx")
+ ch2bt1
+x1=ch2bt1$X_1
+x2=ch2bt1$X_2
+x3=ch2bt1$X_3
+y=ch2bt1$Y
+ 
+```
+```{r}
+#a.hệ số tương quan giữa y và x3
+cov(y,x3)
+
+```
+```{r}
+#b.hồi quy y theo x3
+reg1=lm(y~x3)
+summary(reg1)
+#hệ số góc ước lượng=-4.527e-07: khi x3 tăng 1 đơn vị thì y giảm -4.527e-07 đơn vị
+```
+```{r}
+#c.
+reg2=lm(y~x1)
+summary(reg2)
+anova(reg2)
+```
+

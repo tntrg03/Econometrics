@@ -1,0 +1,100 @@
+---
+title: "Chuong 4 BT3"
+author: "Truong Ngoc Trang"
+date: "2023-02-24"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#BAI TAP 4.3
+#	Tệp ch4bt3_sbt.txt cho số liệu về tổng chi tiêu (CS) 
+#và thu nhập sau thuế (Y) tính theo giá 1985 của UK trong thời gian 1974Q1 - 1984Q4.
+#a.  Hãy tạo biến giả trong đó quý I là quý cơ sở.	
+#b.  Hãy ước lượng hàm tiêu dùng: CS= beta_1 + beta_2Y + u
+#c.  Hãy ước lượng hàm tiêu dùng có ảnh hưởng của yếu tố thời vụ
+#d.  Những quý nào có ảnh hưởng đến tiêu dùng. Vì sao?
+#e.  Có bỏ được quý II ra khỏi mô hình không? Vì sao?
+#f.  Hãy ước lượng hàm tiêu dùng có ảnh hưởng tương tác
+#của thu nhập và yếu tố thời vụ.
+#CÀI THƯ VIỆN
+library(ggplot2)
+library(lmtest)
+library(tsmp)
+library(urca)
+library(sandwich)
+library(car)
+library(carData)
+library(forecast)
+library(tseries)
+library(dummy)
+library(seasonal)
+
+# Đọc file data
+ ch4bt3_sbt <- read.delim("E:/KTL/KTL_01/Chương4/ch4bt3_sbt.txt")
+ch4bt3_sbt
+
+```
+```{r}
+#a.  Hãy tạo biến giả trong đó quý I là quý cơ sở.
+#CS= a+bY+c1D2+c2D3+c3D4+ u
+CS=ch4bt3_sbt$CS
+Y=ch4bt3_sbt$Y
+#VẼ ĐỒ THỊ BH SU TUONG QUAN
+plot(Y,CS,type="p")
+```
+```{r}
+#BIEU THI BANG MA TRAN
+CS=ts(CS, start=c(1974,1), end=c(1984,4),frequency = 4)
+CS
+Y=ts(Y, start=c(1974,1), end=c(1984,4),frequency = 4)
+Y
+SERIES=cbind(CS,Y)
+SERIES
+#VẼ ĐT 
+autoplot(SERIES,xlab="Q-year",ylab="")
+```
+```{r}
+# lấy quý 4 làm cơ sở
+dum3=seasonaldummy(SERIES)
+dum3
+d1=ts(dum3[,1],start=c(1974,1),end=c(1984,4),frequency = 4)
+d2=ts(dum3[,2],start=c(1974,1),end=c(1984,4),frequency = 4)
+d3=ts(dum3[,3],start=c(1974,1),end=c(1984,4),frequency = 4)
+d1
+d2
+d3
+d=cbind(d1,d2,d3)
+```
+```{r}
+#b.  Hãy ước lượng hàm tiêu dùng: CS= beta_1 + beta_2Y + u
+reg1=lm(CS~Y)
+summary(reg1)
+```
+```{r}
+#c.  Hãy ước lượng hàm tiêu dùng có ảnh hưởng của yếu tố thời vụ
+reg2=lm(CS~Y+d1+d2+d3)
+summary(reg2)
+```
+```{r}
+#d.  Những quý nào có ảnh hưởng đến tiêu dùng. Vì sao?
+#Cả 3 quý đều ảnh hưởng đến tiêu dùng vì p-value<0.05
+plot(reg2)
+
+
+myH0=c("d1","d2","d3")
+myH0
+linearHypothesis(reg2, myH0)
+```
+```{r}
+#e.  Có bỏ được quý II ra khỏi mô hình không? Vì sao?
+#f.  Hãy ước lượng hàm tiêu dùng có ảnh hưởng tương tác
+#của thu nhập và yếu tố thời vụ.
+linearHypothesis(reg2,c("d2"))
+reg3=lm(CS~Y+d+Y*d)
+summary(reg3)
+```
+

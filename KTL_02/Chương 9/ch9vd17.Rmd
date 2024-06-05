@@ -1,0 +1,102 @@
+---
+title: "Ch9vd17"
+author: "tntrg_03"
+date: "2023-08-24"
+output: word_document
+---
+```{r}
+library(car)
+library(carData)
+library(zoo)
+library(urca)
+library(lmtest)
+library(tseries)
+library(systemfit)
+library(dynlm)
+library(dplyr)
+library(stargazer)#Trình bày kết quả hồi quy trên 1 bảng
+library(sandwich)
+library(survival)
+library(foreign)
+library(AER)
+library(readr)
+library(ivreg)#UL có biến công cụ
+```
+
+```{r}
+ch9vd17 <-read.delim("E:/KTL/KTL_02/Chương 9/ch9bt17.txt")
+ch9vd17 = ts(ch9vd17,start(2008,1),frequency = 1)
+ch9vd17 = as.data.frame(ch9vd17)
+ch9vd17
+```
+# XEM XÉT CUNG LAO ĐỘNG CỦA PHỤ NỮ ĐÃ CÓ GIA ĐÌNH VÀ CẦU VỀ LAO ĐỘNG
+#Xét 2 phương trình
+hours= a + a1*log(wage) + a2*edu + a3*age + a4*kidslt6 + a5*nwifeinc + u1(1)
+log(wage)= b+ b1*hours  + b2*edu + b3*exper + b4*exper^2  +            u2(2)
+ Trong đó:-hours:số giờ đi làm được trả công
+          -wage: tiền công/giờ
+          -kidslt6:số con có độ tuổi dưới 6
+          -nwifeinc:thu nhập ngoài tiền công của phụ nữ
+          -edu:số năm được đào tạo
+          -exper:kinh nghiệm công tác
+          
+=> Hai ptrinh định dạng được nhưng đều vô định
+Dùng 2SLS
+#Xét ptrinh rút gọn:
+#hours = c + c1*edu+c2*age+c3*kidslt6+c4*nwifeinc+c5*exper+c6*exper^2+v1 (3)
+#log(wage)=d+d1*edu+d2*age+d3*kidslt6+d4*nwifeinc+d5*exper+d6*exper^2+v2(4)
+```{r}
+hours = ch9vd17$HOURS
+ln_wage= ch9bt17$LWAGE
+edu= ch9vd17$EDUC
+age = ch9vd17$AGE
+kidslt6 = ch9vd17$KIDSLT6
+nwifeinc=ch9vd17$NWIFEINC
+exper = ch9vd17$EXPER
+exper2=ch9vd17$EXPERSQ
+
+```
+#Ước lượng 2 prinh rút gọn
+```{r}
+reg3 = dynlm(hours~edu+age+kidslt6+nwifeinc+exper+exper2)
+summary(reg3)
+```
+
+```{r}
+reg4 = dynlm(ln_wage~edu+age+kidslt6+nwifeinc+exper+exper2)
+summary(reg4)
+```
+#Lấy 2 giá trị hourshat,ln_wagehat 
+```{r}
+hourshat = fitted.values(reg3)
+ln_wagehat= fitted.values(reg4)
+b = cbind(hourshat,ln_wagehat)
+b
+```
+#Cnhat lai số liệu
+```{r}
+new = ch9vd17[2:428,1:23]
+new
+```
+
+#Giai đoạn 2:Thay 2 gtrị UL vào vế phải của (1),(2)
+```{r}
+reg = dynlm(data= new,hours~ln_wage+ln_wagehat+edu+age+kidslt6+nwifeinc)
+summary(reg)
+```
+UL hệ số của biến ln_wagehat có p-value <0.05=>Có tính đồng thời trong 2 hệ pt
+=>Từ đó t có thể dùng 2SLS ul từng ptrinh
+```{r}
+reg1= dynlm(hours~ln_wage+edu+age+kidslt6+nwifeinc)
+reg2= dynlm(ln_wage~hours+edu+exper+exper2)
+stargazer(reg1,reg2,type ="text")
+```
+
+
+
+
+
+
+
+
+

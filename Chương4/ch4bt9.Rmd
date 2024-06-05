@@ -1,0 +1,66 @@
+---
+title: "Chương 4 Bài Tập 9"
+author: "Truong Ngoc Trang"
+date: "2023-03-11"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#cài thư viện
+library(lmtest)
+library(zoo)
+library(ggplot2)
+library(carData)
+library(car)
+library(sandwich)
+library((urca)
+library(forecast)
+library(strucchage)
+
+```
+```{r}
+library(readxl)
+ch4bt9 <- read_excel("E:/KTL/KTL_01/Chương4/ch4bt9.xlsx")
+ch4bt9
+```
+```{r}
+KN=ch4bt9$KN
+NS=ch4bt9$NS
+TD=ch4bt9$TD
+#a.Tạo biến giả cho TD
+DN=factor(TD,label=c("0","1"))
+DN
+```
+```{r}
+#b.Ước lượng NS theo số tháng KN và TD
+reg1=lm(NS~KN+TD)
+summary(reg1)
+```
+```{r}
+#c.Kiểm định F sự thay đổi của ngành nghề có ảnh hưởng tới NS hay không?
+#CÁCH 1
+linearHypothesis(reg1,"TD")
+# CÁCH 2
+reg2=lm(NS~KN)
+summary(reg2)
+R12=summary(reg1)$r.squared
+R12
+R22=summary(reg2)$r.squared
+R22
+F=(R12-R22)*(length(NS)-3)/(1-R12)
+"F=";F
+
+```
+#Kiểm định F cho thấy TD tác động tới NS
+```{r}
+#c.Kiểm định Chow trong R
+
+plot(ch4bt9$NS)
+
+sctest(ch4bt9$NS ~ ch4bt9$KN, type = "Chow", point = 16)
+```
+

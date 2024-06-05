@@ -1,0 +1,112 @@
+---
+title: "Ch8bt1"
+author: "55_Truong Ngoc Thuy Trang"
+date: "2023-08-09"
+output: word_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r}
+library(carData)
+library(car)
+library(zoo)
+library(lmtest)
+library(urca)
+library(tseries)
+library(dLagM)
+library(vars)
+library(dynlm)
+library(readxl)
+```
+
+```{r}
+Ch8bt1 <- read_excel("E:/KTL/KTL_02/Chương 8/Ch8bt1.xlsx")
+#View(Ch8bt1)
+Ch8bt1
+```
+
+```{r}
+#Gán Biến
+M=Ch8bt1$M #tổng cân đối tiền mặt
+Y=Ch8bt1$Y#:tổng thu nhập quốc gia
+r=Ch8bt1$r#:lãi suất dài hạn
+M1=Ch8bt1$M_1 # biến cân đối tiền mặt trễ 1 thời kì
+```
+
+Xét mô hình Ln(M)= Ln(beta)+beta1*Ln(Y)+beta2*Ln(r)+u
+
+```{r}
+#a,Tính hệ số co dãn của M theo Y và r
+reg1=dynlm(log(M)~log(Y)+log(r))
+summary(reg1)
+```
+```{r}
+resettest(reg1)
+```
+```{r}
+bptest(reg1)
+bgtest(reg1,order = 1)
+```
+
+
+
+=\>Hệ số beta1,2 không có ý nghĩa thống kê
+
+```{r}
+#b,Ước lượng hàm cầu dạng(M/Y)=a*r^(beta)*e^u
+#Ln(M)=Ln(a)+Ln(Y)+beta*Ln(r)+u
+
+reg2 = dynlm(log(M/Y)~log(r))
+summary(reg2)
+
+```
+
+=\>hệ số beta của log(r) không có ý nghĩa thống kê
+
+```{r}
+reg3 = dynlm(log(M)~log(Y)+lag(log(M)))
+summary(reg3)
+```
+
+```{r}
+reg4 = dynlm(log(M)~log(r)+lag(log(M)))
+summary(reg4)
+```
+
+Nhìn tổng quan 3 mô hình reg1,3,4 thì reg4 phù hợp =\>Tiến hành kiểm
+định các GT: "Mô hình không thiếu biến" "Mô hình không có psss thay đổi"
+"Mô hình không có tụ tương quan"
+
+```{r}
+# Kđ "Mô hình không thiếu biến"
+resettest(reg4)
+```
+
+P-value \>0.05:Chưa có cơ sở bác bỏ H0 =\>Mô hình kh thiếu biến(Kỳ vọng
+ssnn bằng không)(1)
+
+```{r}
+#Kđ "Mô hình có PSSS kh thay đổi"
+bptest(reg4)
+
+```
+
+=\>Chưa có cơ sở bb H0 nên PSSS không đổi(2)
+
+```{r}
+#Kiểm định tự tương quan bậc 1
+bgtest(reg4,order=1)
+
+```
+
+=\>Không tự tương quan bậc 1(3) Từ (1)(2)(3)=\>reg4 là mô hình phù hợp
+
+```{r}
+#c,Ln(M) = del*Ln(bta)+bta1*del*ln(Y)+bta*del*ln(r)-(1-del)*ln(M(-1))+del*u
+reg5 = dynlm(log(M)~log(Y)+log(r)+log(lag(M,1)))
+summary(reg5)
+
+```
+

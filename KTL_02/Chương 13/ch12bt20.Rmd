@@ -1,0 +1,119 @@
+---
+title: "ch12bt20"
+author: "tntrg03"
+date: "2023-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+library(sandwich)
+library(car)
+library(carData)
+library(zoo)
+library(ggplot2)
+library(forecast)
+library(tseries)
+library(urca)
+library(dynlm)
+
+```
+
+## TAO RANDOM WALK (BƯỚC NGẪU NHIÊN) 
+$Y_t=Y_{t-1}+u_t$ với $u_t$ là nhiễu trắng
+```{r}
+# Tạo trục tọa độ x= (0,50), y=(-18,18)
+plot(c(0,50),c(0,0),type="b", lwd=2,ylim=c(-18,18))
+#lopp over draw
+for (r in 1:30){
+  # i.i.d stadard normal shock
+  e=rnorm(50)
+  # Random Walk as cummulative sum shocks
+  y=ts(cumsum(e))
+  # Add line to graph
+  lines(y,col=gray(.6))
+}
+
+```
+
+## TAO RANDOM WALK WITH DRIFT (BNN CÓ HỆ SỐ CHẶN)
+$Y_t = \alpha+Y_{t-1}+u_t$
+```{r}
+plot(c(0,50),c(0,0),type="b", lwd=2,ylim=c(-18,18))
+#lopp over draw
+for (r in 1:30){
+  # i.i.d stadard normal shock
+  e=rnorm(50)
+  # Random Walk as cummulative sum shocks
+  y=ts(cumsum(1+e))
+  # Add line to graph
+  lines(y,col=gray(.6))
+}
+
+```
+## SAI PHAN CUA BNN CÓ HỆ SỐ CHẶN
+```{r}
+# Tao 1000 tu phan bo chuan hoa
+u=rnorm(1000, 0, 1)
+plot(c(-500,500), c(0,0),type="b",ylim=c(-3,3))
+#lopp over draw
+for (r in 1:1000){
+  # i.i.d stadard normal shock
+  # Random Walk as cummulative sum shocks, with drift
+  y=ts(cumsum(1+u))
+  #First Difference
+  Dy=diff(y)
+  # Add line to graph
+  lines(Dy,col=gray(.6))
+}
+
+```
+## NHAP SO LIEU VA TAO BIEN TIME SERIES
+```{r}
+CH12BT20=read.csv("E:/KTL/KTL_02/Chương 13/ch12bt20.csv", header=TRUE)
+head(CH12BT20,2) 
+GDP=CH12BT20$GDP
+GDP=ts(GDP, start=c(1970,1),end=c(1991,4),frequency=4)
+
+```
+## NHAN DIEN CHUOI CO XU THE,HE SO CHAN HAY KHONG?
+```{r}
+plot(GDP)
+```
+=>Chuỗi thời gian GDP có xu thế, có hệ số chặn
+
+## KIEM DINH ADF cho GDP-KIEM DINH BNN cho GDP
+```{r}
+# Cách 1:
+reg1=dynlm(d(GDP)~L(GDP)+L(d(GDP))+L(d(GDP),2)+L(d(GDP),3)+L(d(GDP),4)+trend(GDP))
+summary(reg1)
+
+```
+```{r}
+#Cách 2: với biến không xu thế,không hệ số chặn
+adf.test(diff(GDP))
+```
+=>Chưa bb H0 ở mức yn 5% => chuỗi GDP tích hợp bậc 1 hay I(1)
+
+```{r}
+# Cách 3: DẠNG TỔNG QUÁT: ur.df(y, type = c("none", "drift", "trend"), lags = 1, selectlags = c("Fixed", "AIC", "BIC"))
+
+
+reg2=(ur.df(GDP,type=c("trend"), selectlags = c("Fixed")))
+summary(reg2)
+
+```
+=> Với 3 mức ý nghĩa, đều chưa có cơ sở BB H0=> chuỗi sai phân GDP dừng, chuỗi GDP là BNN
+Với giả thuyết phi2 H0:hệ số chặn= hệ số biến trễ=hệ số biến xu thế = 0
+=> không bb H0 với mức ý nghĩa 1%
+
+
+
+
+
+
+

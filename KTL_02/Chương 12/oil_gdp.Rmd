@@ -1,0 +1,85 @@
+---
+title: "ch12_oil_txt"
+author: "iuuuuu"
+date: "2023-11-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+ data_oil <- read.delim("E:/KTL/KTL_02/Chương 12/oil.txt")
+```
+```{r}
+library(foreign)
+library(lmtest)
+library(tseries)
+library(zoo)
+library(car)
+library(carData)
+library(forecast)
+library(ggplot2)
+library(survival)
+library(AER)
+library(sandwich)
+```
+
+
+
+## San mu gian don- mot tham so
+```{r}
+oil=data_oil$y
+oil= ts(oil,start = 1996,frequency = 1)
+plot(oil)
+# từ khoá san chuỗi: ses
+oilses=ses(oil,h=5)
+summary(oilses)
+```
+
+```{r}
+plot(oilses)
+```
+
+
+```{r}
+oilsesmu=fitted(oilses)
+plot(oilsesmu)
+round(accuracy(oilses,1.96))
+autoplot(oilses)+autolayer(fitted(oilses),series="Fitted")+ylab("oil")+xlab("Year")
+```
+```{r}
+ch12bt20 <- read.csv("E:/KTL/KTL_02/Chương 13/ch12bt20.csv")
+GDP=ch12bt20$GDP
+GDP=ts(GDP, start=c(1970,1), frequency=4)
+GDP
+
+```
+
+```{r}
+GDPAD= hw(GDP,seasonal="additive")
+summary(GDPAD)
+GDPMU= hw(GDP,seasonal="multiplicative")
+summary(GDPMU)
+library(stats)
+seasonal_mu=decompose(GDP,type = "multiplicative")
+seasonal_mu
+```
+
+
+```{r}
+autoplot(GDP)+
+  autolayer(GDPAD, series="HW additive forecasts", PI=FALSE)+
+  autolayer(GDPMU, series="HW multiplicative forecasts", PI=FALSE)+
+  xlab("Year")+
+  ylab("GDP of USA")+
+  ggtitle(" FORECAST GDP OF USA BY HOLT-WINTERS")+
+  guides(colour=guide_legend(title="Forecast"))
+
+```
+
+
+
+
+
+

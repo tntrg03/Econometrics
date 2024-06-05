@@ -1,0 +1,87 @@
+---
+title: "ch9vd16"
+author: "tntrg_03"
+date: "2023-08-24"
+output: word_document
+---
+
+```{r}
+library(car)
+library(carData)
+library(zoo)
+library(urca)
+library(lmtest)
+library(tseries)
+library(systemfit)
+library(dynlm)
+library(dplyr)
+library(stargazer)#Trình bày kết quả hồi quy trên 1 bảng
+library(sandwich)
+library(survival)
+library(foreign)
+library(AER)
+library(readr)
+```
+
+```{r}
+ch9vd16 <- read.delim("E:/KTL/KTL_02/Chương 9/ch9bt16.txt")
+ch9vd16 = ts(ch9vd16, start(1959,1),frequency = 1)
+ch9vd16 = as.data.frame(ch9vd16)
+ch9vd16
+```
+# XÉT 2 PHƯƠNG TRÌNH
+inf = a + a1*open+      a2*log(pcinc)+u1              (1)
+open = b +       +b1*inf+b2*log(pcinc)+b3*log(land)+u2(2)
+Trong đó:inf:tỷ lệ lạm phát
+         -open:import/GDP
+         -pcinc:income/person
+         -land:area national
+#Giả thiết:+Càng mở cửa thì tỷ lệ lạm phát càng thấp (a1<0)
+#          +pcinc,land là biến ngoại sinh
+# H0:a1>=0
+# H1:a1<0
+```{r}
+#Gán biến
+inf = ch9vd16$INF
+open = ch9vd16$OPEN
+lnpcinc=ch9vd16$LPCINC
+lnland=ch9vd16$LLAND
+inf
+open
+lnpcinc
+lnland
+plot(inf)
+plot(open)
+plot(lnpcinc)
+plot(lnland)
+
+```
+
+#Phương trình rút gọn
+inf = al   + al1*ln(pcinc) +al2*ln(land) (3)
+open = bta + bta1*ln(pcinc)+bta2*ln(land)(4)
+```{r}
+#UL mô hình (3)
+reg3 = dynlm(data = ch9vd16,inf~lnpcinc+lnland)
+summary(reg3)
+```
+```{r}
+#UL mô hình (4)
+reg4 = dynlm(data = ch9vd16,open ~lnpcinc+lnland)
+summary(reg4)
+```
+#lấy ra giá trị openhat thay vào ptrinh (1)
+```{r}
+openhat=fitted.values(reg4)
+openhat
+```
+```{r}
+reg1 = dynlm(inf~openhat+lnpcinc)
+summary(reg1)
+```
+
+
+
+
+
+

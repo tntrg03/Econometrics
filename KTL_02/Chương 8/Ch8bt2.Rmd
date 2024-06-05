@@ -1,0 +1,117 @@
+---
+title: "Ch8bt2"
+author: "55_Truong Ngoc Thuy Trang"
+date: "2023-08-10"
+output: word_document
+---
+```{r}
+library(carData)
+library(car)
+library(zoo)
+library(lmtest)
+library(urca)
+library(tseries)
+library(dLagM)
+library(vars)
+library(dynlm)
+library(readxl)
+```
+```{r}
+
+CH8BT2 <- read.delim("E:/KTL/KTL_02/Chương 8/CH8BT2.TXT")
+CH8BT2
+#View(CH8BT2)
+```
+```{r}
+#Gán biến
+Y = CH8BT2$Y #Mức đầu tư của doanh nghiệp 
+X = CH8BT2$X #Doanh thu của doanh nghiệp
+Y
+X
+
+```
+#Xét mô hình (Y_t)*=alpha+beta*X_t+u_t
+(Y_t)*:mức đầu tư mong đợi của doanh nghiệp
+#Ta có MH hiệu chỉnh bộ phận:
+Y_t=delta*bta0+delta*bta1*X_t+(1-delta)*Y_(t-1)+delta*u_t
+#a,Sử dụng MH (2)Nerlove ước lượng hàm đầu tư NH và DH.KIểm định hiện tượng tự tương quan
+
+```{r}
+reg1=dynlm(data=CH8BT2,ts(Y)~X+L(ts(Y),1))
+summary(reg1)
+
+```
+```{r}
+durbinWatsonTest(reg1)
+```
+p-value >0.05: chưa có cơ sở bác bỏ H0
+=>Có tự tương quan 
+
+##b,hàm đầu tư NH và DH dạng Y*=bta*X^bta1*e^u
+                        =>Ln(Y*)=Ln(bta)+bta1*Ln(X)+u
+Ta có MH hiệu chỉnh bộ phận:
+Ln(Y)= del*Ln(bta)+del*bta1*Ln(lag(X)+(1-del)*Ln(lag(Y))
+```{r}
+reg2 = dynlm(data = CH8BT2,log(Y)~log(L(ts(X),1))+log(L(ts(Y),1)))
+summary(reg2)
+```
+##c, UL mô hình Y_t = alpha + bta*X*+u_t(MH kì vọng thích nghi)
+X*: mức doanh thu mong đợi
+Ta có: Y = lam*alpha + lam*bta*X(t-1)+(1-lam)*Y(t-1)
+
+```{r}
+reg3 = dynlm(data=CH8BT2,Y~L(ts(X),1)+L(ts(Y),1))
+summary(reg3)
+```
+#Kiểm định tự tương quan bằng DurbinWatson h
+```{r}
+durbinWatsonTest(reg3)
+
+```
+##d,Y*=alpha + bta*X + ut
+Ta có:Y = alpha +bta*X+bta1*Y(t-1)+bta2*Y(t-2)+v
+```{r}
+reg4 = dynlm(data=CH8BT2,ts(Y)~ts(X)+L(ts(Y),1:2))
+summary(reg4)
+```
+##e,Dùng kđ nhân quả với độ dài của trễ là 4 xem yếu tố nào là nguyên nhân/kết quả.
+```{r}
+reg5= dynlm(data=CH8BT2,ts(Y)~ts(X)+L(ts(X),1:4)+L(ts(Y),1:4))
+summary(reg5)
+MyH0 = matchCoefs(reg5,"X")
+linearHypothesis(reg5,MyH0)
+```
+=>p_value < 0.05:bb H0=>X có tác động đến Y
+```{r}
+reg6 = dynlm(data=CH8BT2,ts(X)~ts(Y)+L(ts(Y),1:4)+L(ts(X),1:4))
+summary(reg6)
+My_H0 = matchCoefs(reg6,"Y")
+linearHypothesis(reg6,My_H0)
+```
+Y cũng tác động đến X
+
+##f,Giả thiết doanh thu có ảnh hưởng trễ đến đầu tư.
+Với độ dài trễ là 4 và đa thức Almon bậc 2 để ước lượng
+#Y=a+b*Xt+b1*X(t-1)+b2*X(t-2)+b3*X(t-3)+b4*X(t-4)
+Đặt b_i=a0+a1*i+a2*i^2
+Ta có:
+Z_ot=   Xt +  X(t-1) +  X(t-2) +   X(t-3) +   X(t-4)
+Z_1t= 0.Xt +1.X(t-1) + 2.X(t-2)+ 3.X(t-3) +4. X(t-4)
+Z_2t= 0.Xt +1.X(t-1) + 4.X(t-2)+ 9.X(t-3) +16.X(t-4)
+=>Yt=a+ a0*Z_ot + a1*Z_1t + a2*Z_2t
+```{r}
+#Z0 = I(ts(X)+L(ts(X),1)+L(ts(X),2)+L(ts(X),3)+L(ts(X),4))
+#Z1 = I(L(ts(X),1)+2*L(ts(X),2)+3*L(ts(X),3)+4*L(ts(X),4))
+#Z2 = I(L(ts(X),1)+4*L(ts(X),2)+9*L(ts(X),3)+16*L(ts(X),4))
+reg7 = dynlm(data=CH8BT2,ts(Y)~ I(ts(X)+L(ts(X),1)+L(ts(X),2)+L(ts(X),3)+L(ts(X),4))+I(L(ts(X),1)+2*L(ts(X),2)+3*L(ts(X),3)+4*L(ts(X),4))+I(L(ts(X),1)+4*L(ts(X),2)+9*L(ts(X),3)+16*L(ts(X),4)))
+summary(reg7)
+```
+
+
+
+
+
+
+
+
+

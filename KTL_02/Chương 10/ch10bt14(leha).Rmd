@@ -1,0 +1,155 @@
+---
+title: "Ch10bt14"
+author: "tntrg_03"
+date: "2023-09-11"
+output: word_document
+---
+
+```{r  echo=TRUE}
+library(foreign)
+library(car)
+library(lmtest)
+library(AER)
+library(caret)#chia tệp số liệu một cách ngẫu nhiên
+library(caTools)
+```
+
+BAI TAP 10.14.2+3:XAC SUAT VO NO
+
+MO HINH LOGIT: XAC SUAT VO NO. Data: mroz.txt
+
+INPUT DATA & TRAIN.SET, TEST.SET
+ #NOTE: dữ liệu thường unbalance không cần bằng vì tỷ lệ vỡ nợ khá thấp
+ =>dùng over sampling:SMOTE
+
+```{r  echo=TRUE}
+leha = leha <- read.csv("E:/KTL/KTL_02/Chương 10/leha.csv", sep=";")
+#summary(leha)
+#View(leha)
+set.seed(1)
+split=sample.split(leha$default_prin,SplitRatio = 0.8)# chia tệp số liệu theo biến default_prin
+#split
+# chia tẹp dữ liệu cho phép đánh giá hiệu suất của mô hình trên dữ liệu mà chưa từng thấy trước đây
+train.set=subset(leha,split==TRUE)
+#summary(train.set)
+test.set=subset(leha,split==FALSE)
+#View(test.set)
+#View(train.set)
+dim(test.set)# Cho biết số dòng;số cột của dữ liệu
+dim(train.set)
+dim(leha)
+```
+
+## UOC LUONG LOGIT TREN TRAIN.SET
+
+```{r  echo=TRUE}
+logitres=glm(default_int~income2+spending2+experience+age+newcustomer+notran+notran3+wpcity+wpcompany+wpothers+wpmanager+wpspecialist+wpother+cash+home100+liveparent+rent,data=train.set,family=binomial(link=logit))
+summary(logitres)
+```
+
+## DIEU CHINH MO HNH
+
+```{r  echo=TRUE}
+
+prob_L.train=fitted(logitres) 
+x=glm(default_int~income2+age+newcustomer+notran3+wpcompany+wpmanager,data=train.set,family=binomial(link=logit))
+summary(x)
+
+prob_L.train.classes <- ifelse(prob_L.train > 0.5, 1, 0)
+# Proportion of correctly classified observations:
+#x = cbind(prob_L.test.classes,train.set$default_prin)
+#x
+TLDBD_L.train=mean(prob_L.train.classes == train.set$default_int, na.rm=TRUE)
+print("Ty lệ dự bao đúng trên train.set =")
+TLDBD_L.train
+
+```
+Với mức ý nghĩa 5%, trong điều kiện các yếu tố khác không đổi,khi tuổi tăng lên 1 đơn vị thì khả năng trả lãi vay theo log giảm 0.02891 hay khả năng trả lãi vay sẽ tăng theo 0.97
+
+## ƯỚC LƯỢNG MÔ HÌNH TRÊN TEST.SET
+
+```{r}
+#logit.res=glm(default_int~income2+spending2+experience+age+newcustomer+notran+notran3+wpcity+wpcompany+wpothers+wpmanager+wpspecialist+wpother+cash+home100+liveparent+rent,data=test.set,family=binomial(link=logit))
+#summary(logit.res)
+#prob_L.test = fitted(logit.res)
+prob_L.test <- predict(logitres, test.set,type="response")  # predicted scores 
+length(prob_L.test)
+prob_L.test.classes <- ifelse(prob_L.test > 0.5, 1,0)
+#prob_L.test.classes
+# Proportion of correctly classified observations:
+TLDBD_L.test=mean(prob_L.test.classes == test.set$default_int, na.rm=TRUE)
+print("Tỷ lệ dự báo đúng trên test.set=")
+TLDBD_L.test
+
+```
+
+## MOT SO PHAN TICH
+
+```{r}
+print('Tính APE- AVERAGE PAARTIAL EFFECTS- ảnh hưởng riêng trung bình của từng biến')
+Aprob_L=mean(prob_L.train)
+APE_L=coef(logitres)*Aprob_L
+print('APE=')  
+APE_L
+
+print('Tính tỷ số OR, lấy đến 4 chữ số thập phân')
+cbind(Estimate=round(coef(logitres),4),
+      OR=round(exp(coef(logitres)),4))
+#OR=p/(1-p):cho biết khả năng xảy ra sự kiện Y=1 bằng bao nhiêu lần so với sự kiện Y=0
+print('Khoảng tin cậy cho OR')
+exp(cbind(OR = coef(logitres), confint(logitres)))
+
+
+print('CIs using profiled log-likelihood')
+
+confint(logitres) # khoảng tin cậy cho các hệ số ước lượng 
+
+print('CIs using standard errors')
+confint.default(logitres)
+```
+
+
+### Uoc luong probit tren train.set
+```{r}
+probitres=glm(default_int~income2+spending2+experience+age+newcustomer+notran+notran3+wpcity+wpcompany+wpothers+wpmanager+wpspecialist+wpother+cash+home100+liveparent+rent,data=train.set,family=binomial(link = probit))
+summary(probitres)
+```
+#### Điều chỉnh mô hình
+```{r}
+durbinWatsonTest(logitres) # kiểm định tự tương quan
+library(fBasics)
+jarqueberaTest(probitres$residuals)
+#chisq.test(data(train.set),age,income2)
+```
+Dieu chinh mo hinh Probit
+```{r}
+y=glm(default_int~income2+newcustomer+notran+wpcompany+wpmanager,data=train.set,family=binomial(link = probit))
+summary(y)
+```
+### =>hệ số ước lượng icome2 = -0.014063
+```{r}
+pnorm(-0.014063)
+```
+Do đó khi thu thập tăng thêm 1 đơn vị thì khả năng không trả lãi tăng thêm 0,49
+
+```{r}
+f_train=fitted(probitres)
+predicted_train.classes=ifelse(f_train>0.5,1,0)
+TLDBD_train=mean(predicted_train.classes==train.set$default_int,na.rm = TRUE)
+TLDBD_train
+```
+Dự báo trên Test.set
+
+```{r}
+f_test=predict(probitres,test.set,type = "response")
+predicted_test.classes=ifelse(f_test>0.5,1,0)
+TLDBD_test=mean(predicted_test.classes==test.set$default_int,na.rm=TRUE)
+TLDBD_test
+
+```
+
+
+
+
+
+

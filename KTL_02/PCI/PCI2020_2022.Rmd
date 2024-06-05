@@ -1,0 +1,118 @@
+---
+title: "Bài Kiểm Tra KTL_II"
+author: "Trương Ngọc Thuỳ Trang"
+date: "2023-10-06"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+library(carData)
+library(car)
+library(lmtest)
+library(AER)
+library(plm)
+library(stargazer)
+library(readxl)
+library(ggplot2)
+library(gplots)
+library(caret)
+library(caTools)
+library(fBasics)
+```
+
+## Nhập data
+
+```{r}
+PCI2020_2022 <- read_excel("E:/KTL/KTL_02/PCI/PCI2020_2022.xlsx")
+PCI2020_2022
+```
+
+## tạo thêm cột thời gian
+
+```{r}
+t22= c(rep(1,63),rep(0,126))
+t21=c(rep(0,63),rep(1,63),rep(0,63))
+time=c(rep(2022,63),rep(2021,63),rep(2020,63))
+#time
+PCI=cbind(PCI2020_2022,time,t22,t21)
+View(PCI)
+dim(PCI)
+library(graphics)
+coplot(p_PCI~CSTP2|Area,type="p",data = PCI)
+plotmeans(p_PCI ~ City, main="Heterogeineityacross cities", data=PCI)
+scatterplot(p_PCI~time|Area, boxplots=FALSE, smooth=TRUE, reg.line=FALSE, data=PCI)
+
+```
+
+## Panel Model
+
+## 1.Uoc luong gop POLS
+
+```{r}
+pols_pci=plm(p_PCI~CSTP1+CSTP2+CSTP3+CSTP4+CSTP5+CSTP6+CSTP7+CSTP8+CSTP9+CSTP10+t22+t21,data=PCI,index = c("City","time"),model = ("pooling"))
+summary(pols_pci)
+```
+
+### =\>có thể thấy các hệ số ước lượng đều có ý nghĩa thống kê
+
+### Kiểm định GT : H0:PSSS mô hình thay đổi
+
+```{r}
+bptest(pols_pci)
+```
+
+### Do p_value\<0.05 nên bác bỏ H0. Vậy với mức ý nghĩa 5%, pols có PSSS thay đổi
+
+### =\>các UL là vững những không hiệu quả bởi vì có tương quan chéo giữa ssnn với 1 thực thể đã cho ở thời điểm khác nhau
+
+```{r}
+vif(pols_pci)# hệ số phóng đại phương sai
+```
+
+### =\>có đa cộng tuyến giữa các biến độc lập
+
+## 2.Uoc luong mo hinh tac dong co dinh- FE
+
+```{r}
+fem_pci=plm(p_PCI~CSTP1+CSTP2+CSTP3+CSTP4+CSTP5+CSTP6+CSTP7+CSTP8+CSTP9+CSTP10+factor(time),data=PCI,index = c("City","time"),model = "within")
+summary(fem_pci)
+fem_pci1=plm(p_PCI~CSTP1+CSTP2+CSTP3+CSTP4+CSTP5+CSTP6+CSTP7+CSTP8+CSTP9+CSTP10,data=PCI,index = c("City","time"),model = "within")
+stargazer(fem_pci,fem_pci1,type = "text")
+```
+
+### Kiểm tra ảnh hưởng của thời gian tới mô hình
+
+### GT H0:Mô hình fem_pci1 phù hợp
+
+```{r}
+pFtest(fem_pci,fem_pci1)
+```
+
+### do p_value \< 0.05 nên bb H0. Với mức ý nghĩa 5%, mô hình fem_pci có sự tác động của thời gian phù hợp
+
+```{r}
+fem_pci2=plm(p_PCI~CSTP1+CSTP2+CSTP3+CSTP4+CSTP5+CSTP6+CSTP7+CSTP8+CSTP9+CSTP10+factor(City),data=PCI,index = c("City","time"),model = "within")
+summary(fem_pci2)
+#fitted(fem_pci2) # giá trị ước lượng của biến phụ thuộc p_PCI
+scatterplot(fitted(fem_pci2)~PCI$CSTP1|PCI$Area,boxplots=FALSE,xlab = "CSTP1",ylab = "p_PCI_hat",smooth=FALSE)
+abline(lm(PCI$p_PCI~PCI$CSTP1),lwd=3, col="red")
+
+```
+
+## 3.Uoc luong mo hinh tac dong ngau nhien - RE
+
+```{r}
+rem_pci=plm(p_PCI~CSTP1+CSTP2+CSTP3+CSTP4+CSTP5+CSTP6+CSTP7+CSTP8+CSTP9+CSTP10+factor(time),data=PCI,index = c("City","time"),model = "random")
+summary(rem_pci)
+```
+
+## 4.Trình bày 3 mô hình trên một bảng
+
+```{r}
+stargazer(pols_pci,fem_pci,rem_pci,type = "text")
+```

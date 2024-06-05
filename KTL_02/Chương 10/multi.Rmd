@@ -1,0 +1,110 @@
+---
+title: "multimbs"
+author: "tntrg_03"
+date: "2023-09-25"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r  echo=TRUE}
+library(foreign); library(car)
+library(lmtest)
+library(AER)
+library(caret)
+library(caTools)
+library(reshape2)
+library(stargazer)
+library(mlogit)
+library(nnet)
+```
+
+
+## MÔ HÌNH MULTINOMIAL LOGITIC  Data: hsb2.csv
+# These are the Madsen data used in the revised lecture notes. High School and Beyond survey
+Description
+Two hundred observations were randomly sampled from the High School and Beyond survey, a survey conducted on high school seniors by the National Center of Education Statistics. Các biến số: 200 observations and 10 variables: 
+gender:levels female and male; 
+race:levels african american, asian, hispanic, and white; 
+ses:Socio economic status of student's family, with levels low, middle, and high; 
+schtyp: Type of school, with levels public and private; 
+prog: Type of program, with levels general, academic, and vocational; 
+read: Standardized reading score; 
+write:Standardized writing score; 
+math:Standardized math score; 
+science:Standardized science score; 
+socst:Standardized social studies score.
+## INPUT DATA
+
+```{r  echo=TRUE}
+hsb2=read.csv("E:/KTL/KTL_02/Chương 10/hsb2.csv", header=TRUE)
+#View(hsb2)
+head(hsb2,2)
+dim(hsb2)
+
+```
+
+
+```{r}
+# table
+print('Checking the output (dependent) variable')
+table(hsb2$prog) 
+print('Bảng phân bổ prog và loại trường schtyp')
+with(hsb2, table(prog, schtyp))
+print('Kiểm định sự tương quan giưa các biến số') 
+chisq.test(hsb2$prog,hsb2$ses)
+chisq.test(hsb2$prog,hsb2$gender)
+chisq.test(hsb2$prog,hsb2$schtyp)
+
+```
+
+
+## UOC LUONG MULTINOMIAL LOGIT 
+
+```{r  echo=TRUE}
+
+multihsb2=multinom(prog ~ ses + write, data=hsb2)
+
+```
+
+## MỘT SỐ PHÂN TÍCH 
+```{r  echo=TRUE}
+
+print('Trình bày dạng cột') 
+
+stargazer(multihsb2, type="text")
+
+print('Tính tỷ số OR')
+
+multihsb2.OR = exp(coef(multihsb2))
+multihsb2.OR
+
+print('Tỷ số OR cho từng nhóm')
+stargazer(multihsb2, coef=list(multihsb2.OR), type="text", p.auto=FALSE)
+```
+
+```{r}
+## XÁC SUẤT TRUNG BÌNH CÁC LỰA CHỌN CHƯƠNG TRÌNH
+Prob=fitted(multihsb2)
+head(Prob,3)
+print('trung bình xác suất lựa chọn=academic')
+P_aca_TB=mean(Prob[,c(1)])
+P_aca_TB
+print('trung bình xác suất lựa chọn=general')
+P_gen_TB=mean(Prob[,c(2)])
+P_gen_TB
+print('trung bình xác suất lựa chọn=vocation=')
+P_voc_TB=mean(Prob[,c(3)])
+P_voc_TB
+
+```
+
+```{r}
+dwrite <- data.frame(ses = rep(c("low", "middle", "high"), each = 21), write = rep(c(30:50),3))
+dwrite
+pp.write <- cbind(dwrite, predict(multihsb2, newdata = dwrite, type = "probs", se = TRUE))
+by(pp.write[, 3:5], pp.write$ses, colMeans)
+```
+
+

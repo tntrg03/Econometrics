@@ -1,0 +1,29 @@
+---
+title: "Untitled"
+author: "Truong Ngoc Trang"
+date: "2023-03-10"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(carData)
+library(car)
+ch12bt20 <- read_excel("E:/KTL/KTL_01/Chương1/ch12bt20.xls")
+ch12bt20
+summary(ch12bt20)
+
+```
+```{r}
+GDP=ch12bt20$GDP
+summary(GDP)
+mean(GDP)
+var(GDP)
+sd(GDP)
+cor(ch12bt20)
+```
+

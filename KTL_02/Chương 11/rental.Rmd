@@ -1,0 +1,128 @@
+---
+title: "Rental"
+author: "tntrg_03"
+date: "2023-10-02"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign) 
+library(car)
+library(lmtest)
+library(AER)
+library(plm)
+library(stargazer)
+library(readxl)
+library(gplots)
+```
+
+```{r}
+rental <- read.csv("E:/KTL/KTL_02/Chương 11/rental.csv")
+#rental
+#attach(rental)
+dim(rental)
+head(rental,3)
+coplot(rent~avginc|city, type = "p", data=rental)
+plotmeans(rent ~ city, main="Heterogeineityacross city", data= rental)#tính không nhất xuyên suốt
+scatterplot(rent~city|year, boxplots=FALSE, smooth=TRUE, reg.line=FALSE, data=rental)
+
+```
+
+```{r}
+
+```
+
+### Mô hình tác động không quan sát được là: log(rent)=bta0 +alpha*y90 + bta1*log(pop)+bta2*avginc+bta3*pctstu+a_i+u_i
+
+```{r}
+print("Uoc luong mo hinh bang POLS")
+pols_rent=plm(lrent~y90+lpop+avginc+pctstu,data = rental,index = c("city","year"),model = "pooling")
+summary(pols_rent)
+ols_rent=lm(lrent~y90+lpop+avginc+pctstu,data = rental)
+summary(ols_rent)
+stargazer(pols_rent,ols_rent,type = "text")
+```
+
+### Hệ số ứng với biến giả y90: alpha=0,292 có p-value\<0,05 nên có ý nghĩa thống kê và thuê nhà vào năm 1990 sẽ đắt hơn thuê nhà vào năm 1980 một lượng 0,294
+
+### =\>hệ số ước lượng của biến pctstu có ý nghĩa thống kê, khi tỷ lệ % sinh viên so với dân thành phố tăng 1 đơn vị thì giá thuê nhà tăng 100x0,005%=0,5%
+
+```{r}
+bptest(pols_rent)
+```
+
+### chưa có cơ sở bác bỏ H0 nên mô hình câu 1 có psss kh đổi=\>sai số tiêu chuẩn đáng tin cậy
+
+## câu 3
+
+```{r}
+
+#reg= lm((rent)~pctstu,data = rental)
+#summary(reg)
+linearHypothesis(pols_rent,"pctstu = 0")
+linearHypothesis(pols_rent,"lpop=0")
+
+```
+
+## 4,Uoc luong FEM
+
+```{r}
+
+fem_rent=plm(lrent~lpop+avginc+pctstu+factor(year),data=rental,index = c("city","year"),model = "within")
+summary(fem_rent)
+fem_rent1=plm(lrent~lpop+avginc+pctstu,data = rental,index = c("city","year"),model = "within")
+summary(fem_rent1)
+#fixef(fem_rent) # Các giá trị ước lượng của hệ số chặn
+```
+
+```{r}
+# H0:yếu tố thời gian không ảnh hưởng (mô hình fem_rent1 phù hợp)
+pFtest(fem_rent,fem_rent1)#Kiểm định MH OLS có tốt hơn FEM
+bptest(fem_rent)
+```
+
+#### p-value \<0.05 nên Bác bỏ H0=\> mô hình có sự ảnh hưởng của thời gian phù hợp
+
+#### dùng kiểm định BP để kiểm tra PSSS có thay đổi không: p-value \> 0.05 nên chưa có cơ sở BB H0 =\>mô hình fem_rent có PSSS không đổi
+
+### ƯỚC LƯỢNG MO HÌNH TÁC ĐỘNG NGẪU NHIÊN REM
+
+```{r}
+rem_rent1=plm(lrent~lpop+avginc+pctstu,data = rental,index = c("city","year"),model = "random")
+rem_rent= plm(lrent~lpop+avginc+pctstu+factor(year),data = rental,index = c("city","year"),model = "random",)
+#summary(rem_rent1)
+#summary(rem_rent)
+stargazer(rem_rent1,rem_rent,type = "text")
+pFtest(rem_rent,rem_rent1)
+```
+
+
+### 5,FE hay RE
+
+```{r}
+bptest(fem_rent)
+bptest(rem_rent)
+phtest(fem_rent,rem_rent)
+```
+
+### =\>Do p-value \<0.05 nên bb H0 vì vậy mô hình FE được chọn
+
+### 6,Trình bày kết quả 3 mô hình
+
+```{r}
+stargazer(pols_rent,fem_rent,rem_rent,type = "text")
+```
+
+### Test for individual and time effect for panel data
+
+### H0:Ảnh hưởng của cá thể và thời gian là không đáng kể
+
+```{r}
+plmtest(lrent~lpop+avginc+pctstu,data = rental,effect = "twoways",type = "ghm")
+```
+
+#### p-value \<0.05 nên Bác bỏ H0=\> cá thể và thời gian có ảnh hưởng

@@ -1,0 +1,33 @@
+---
+title: "Untitled"
+author: "Truong Ngoc Trang"
+date: "2023-03-05"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#cài thư viện
+library(carData)
+library(car)
+```
+```{r}
+#mở file excel
+ch5b10 <- read_excel("E:/KTL/KTL_01/Chương5/ch5b10.xlsx")
+ch5b10
+```
+```{r}
+# HOI QUY Wage= beta_1+ beta_2*edu
+wage=ch5b10$Wage
+educ=ch5b10$Educ
+reg1=lm(wage~educ)
+summary(reg1)
+```
+```{r}
+#Kiem dinh RAMSEY
+reg
+```
+

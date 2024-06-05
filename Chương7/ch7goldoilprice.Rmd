@@ -1,0 +1,227 @@
+---
+title: "ch7goldoilprice"
+author: "55_Truong Ngoc Thuy Trang"
+date: "2023-03-26"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(carData)
+library(car)
+library(zoo)
+library(lmtest)
+library(sandwich)
+library(tseries)
+#Modul "tseries": Phân tích  time series
+library(dynlm)
+## Modul "dynlm" - Ước lượng khi có biến trễ, sai phân
+library(orcutt)
+#Modul "orcutt": Điều chỉnh tự tương quan băng phương pháp orcut
+library(urca)
+library(forecast)
+library(ggplot2)
+library(tsutils)
+library(readxl)
+goldoilprice <- read_excel("E:/KTL/KTL_01/Chương7/goldoilprice.xls")
+goldoilprice
+
+```
+```{r}
+#TAO Random Walk
+# Tao truc toa do x= (0,50), y=(-18,18), gốc (0,0)
+plot(c(0,50),c(0,0),type="b", lwd=2,ylim=c(-18,18), main= "Random Walk")
+#lopp over draw
+for (r in 1:30){
+  # i.i.d stadard normal shock
+  e=rnorm(50)
+  # Random Walk as cummulative sum shocks
+  y=ts(cumsum(e))
+  # Add line to graph
+  lines(y,col=gray(.6))
+}
+
+
+```
+```{r}
+## TAO RA Random Walk with Drift( bước ngẫu nhiên thêm hệ số chặn)
+plot(c(0,50),c(0,0),type="b", lwd=2,ylim=c(-18,18), main="Random Walk with Drift")
+#lopp over draw
+for (r in 1:30){
+  # i.i.d stadard normal shock
+  e=rnorm(50)
+  # Random Walk as cummulative sum shocks
+  y=ts(cumsum(0.5+e))
+  # Add line to graph
+  lines(y,col=gray(.6))
+}
+
+
+```
+```{r}
+## SAI PHAN CUA Random Walk with Drift
+# Tao 1000 phần tử từ phân bố chuẩn hóa
+ u=rnorm(1000, 0, 1)
+plot(c(-50,50), c(0,0),type="b",ylim=c(-3,3), main="First Difference of Random Walk")
+#lopp over draw
+for (r in 1:10){
+  # i.i.d stadard normal shock
+  # Random Walk  with Drift as cummulative sum shocks
+  u=rnorm(50, 0, 1)
+  y=ts(cumsum(1+u))
+  #First Difference
+  Dy=diff(y)
+  # Add line to graph
+  lines(Dy,col=gray(.6))
+}
+
+```
+```{r}
+## Process u(t)= ro*u(t-1)
+# Tao 1000 phần tử từ phân bố chuẩn hóa
+
+plot(c(-10,50), c(0,0),type="b",ylim=c(-3,10), main="u(t)= ro*u(t-1)")
+#lopp over draw
+  u=rnorm(1000, 0, 1)
+  y1=ts(5+u)
+  #Y2t=0.4*u(t-1)+ep(t)
+  y2=0.4*lag(u,1)
+  lines(y1,col="blue",lwd=2)
+  lines(y2,col="red",lwd = 1)
+  legend("topleft",c("y1","y2"), fill=c("blue","red"))
+
+```
+```{r}
+# Gán thời gian cho file số liệu. Năm frequency=1; Quý: frequency=4; Tháng: frequency=12
+
+# Chuyển thành chuối thời gian
+
+goldprice=ts(goldoilprice$goldprice, start=c(2006,7), frequency=12)
+
+plot(goldprice,xlab="Time", ylab="goldprice", lwd = 3, col=7) 
+
+```
+```{r}
+oilprice=ts(goldoilprice$oilprice, start=c(2006,7), frequency=12)
+
+plot(oilprice,xlab="Time", ylab="oildprice", lwd = 2, col=3) 
+
+```
+```{r}
+plot(oilprice, goldprice,xlab="Oilprice", ylab="Goldprice", lwd = 2,col=6) 
+
+
+par(mfrow = c(2,2))
+plot(goldprice, main = "Goldprice")
+plot(oilprice, main = "Oilprice")
+
+plot(goldprice,
+main="Overlaying Graphs",
+ylim= c(50,2000),
+type="l",
+col="blue")
+lines(oilprice, col="red")
+legend("topleft",
+c("Goldprice","Oilprice"),
+fill=c("blue","red")
+)
+
+
+
+par(mfrow = c(1,1))
+
+```
+```{r}
+plot(goldoilprice$oilprice,goldoilprice$goldprice, xlab="Oilprice", ylab="Goldprice",col="2" )
+```
+```{r}
+plot(goldoilprice$goldprice,type = "o",col = "red", xlab = "Month", ylab="",ylim=c(20,2000))
+lines(goldoilprice$oilprice, type = "o", col = "blue")
+
+```
+```{r}
+# Tạo biến gỉa theo thời vụ
+
+library(tsutils)
+seasd= seasdummy(length(oilprice),12)
+seasd=ts(seasd,start=c(2006,7), frequency=12)
+seasd
+
+```
+```{r}
+#tạo biến xu thế
+trend=seq(from=1,to = length(goldoilprice$date),by=1)
+trend
+
+```
+
+HOI QUY VA PHAN TICH
+```{r}
+#seasd[,1]:tháng 7
+#seasd[,3]:tháng 9
+reg1=lm(goldprice ~ oilprice+seasd[,1]+seasd[,3])
+summary(reg1)
+
+```
+```{r}
+reg2=lm(goldprice ~ oilprice+trend)
+summary(reg2)
+
+```
+```{r}
+# Kiểm định dạng hàm, thiếu biến
+#GT:H0:Dạng hàm đúng->alpha1=...=0
+#->không thiếu biến
+#MH thiếu biến ^2?
+resettest(reg2,power=c(2))
+#MH thiếu biến ^2,^3?
+resettest(reg2,power=c(2,3))
+```
+```{r}
+# Kiểm định PSSS bằng BP TEST
+#GT:H0:PSSS không đổi hay alpha2=0
+#Mh:(e_i)^2=alpha1+alpha2*X+v
+#reg2=lm(goldprice ~ oilprice+trend)
+bptest(reg2)
+
+```
+```{r}
+# Kiểm định  WHITE TEST cho PSSS
+
+#reg2=lm(goldprice ~ oilprice+trend)
+bptest(reg2,~I(oilprice^2))
+bptest((resid(reg2))^2 ~ oilprice+trend+I(oilprice^2))
+```
+```{r}
+# Perform Breusch-Godfrey test for first-order serial correlation(KĐ BG-tự tương quan)
+#tụ tương bậc 1
+bgtest(reg2,order=1)
+#tự tương quan bậc 4
+bgtest(reg2,order=4)
+```
+```{r}
+# Cụ thể test BG bậc 1
+
+reg4= dynlm(resid(reg1)~L(resid(reg1)))
+summary(reg4)
+
+```
+```{r}
+# Kiểm định TTQ bậc 1 bằng Durbin-Watson (DW)
+dwtest(reg2)
+
+```
+```{r}
+#Khắc phục tự tương quan bằng cách lặp nhiều bước
+reg3=cochrane.orcutt(reg2)
+summary(reg3)
+
+```
+```{r}
+bgtest(reg3)
+resettest(reg3)
+```
+

@@ -1,0 +1,45 @@
+---
+title: "Untitled"
+author: "Truong Ngoc Trang"
+date: "2023-03-10"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(carData)
+library(car)
+ch2bt1 <- read_excel("E:/KTL/KTL_01/Chương2/ch2bt1.xlsx")
+ch2bt1
+```
+```{r}
+#Gán biến
+x1=ch2bt1$X_1
+x2=ch2bt1$X_2
+x3=ch2bt1$X_3
+y=ch2bt1$Y
+# a.hệ số tương quan giữa x1 và x2
+cov(ch2bt1)
+cov(x1,x2)
+# vậy x1 và x2 không tương quan
+
+
+```
+```{r}
+#b. Ước lượng y theo x1(x2) và hệ số chặn
+reg1=lm(y~x1)
+summary(reg1)
+reg2=lm(y~x2)
+summary(reg2)
+
+```
+```{r}
+#c.
+reg3=lm(y~x1+x2)
+summary(reg3)
+```
+#cả 3 mô hình, hệ số ước lượng của x1 và x2 đều không có ý nghĩa thống kê. Trong mô hình 3 thì sai số chuẩn của hệ số ước lượng nhỏ hơn so với mh 1 và 2

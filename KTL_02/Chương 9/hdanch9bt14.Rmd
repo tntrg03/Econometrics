@@ -1,0 +1,100 @@
+---
+title: "hdan"
+author: "tntrg_03"
+date: "2023-08-28"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r  echo=TRUE}
+library(foreign); library(AER) 
+library(car); library(carData)
+library(lmtest);library(zoo)
+library(sandwich); library(dynlm)
+library(dplyr);
+# Cài đặt "systemfit), strargazer (nếu chưa cài đặt)
+library(systemfit)
+library(stargazer)
+
+```
+```{r  echo=TRUE}
+ch10bt14=read.table("E:/KTL/KTL_02/Chương 9/ch9bt14.txt", header=TRUE)
+ch10bt14=ts(ch10bt14, start(1959,1), frequency=1)
+ch10bt14=as.data.frame(ch10bt14)
+I=ch10bt14$I
+plot(I)
+R=ch10bt14$R
+# plot(R)
+M=ch10bt14$M
+#plot(M)
+Y=ch10bt14$Y
+# plot(Y)
+```
+# Định dạng từng phương trình
+# Phương trình 1: Định dạng đúng
+# Phương trình 2: Vô định
+# Phương pháp 2SLS
+## Giai đoạn 1 - TÍNH BIẾN CÔNG CỤ
+# Ước lượng cac phương trình rút gọn, ghi lại cac giá trị fitted của biến phụ thuộc
+```{r  echo=TRUE}
+# Ước lượng  phương trình rút gọn thứ nhất
+# Các biến công cụ: hệ số chặn, M, M(-1), I
+
+reg1= dynlm(R~ M+lag(M,1)+I)
+summary(reg1)
+# Ghi lại hệ số của phương trình thứ nhất
+bhat1=coef(reg1)
+# Ghi lại các giá trị fitted của R
+RHAT= fitted.values(reg1)
+
+# Ước lượng phương trình rút gọn thứ 2
+reg2= dynlm(Y~ M+lag(M,1)+I)
+summary(reg2)
+# bhat2=coef(reg2)
+YHAT= fitted.values(reg2)
+# Kết hợp YHAT, RHAT thành véc tơ b
+b=cbind(YHAT,RHAT)
+b
+# Trình bài kết quả hồi quy hai hàm trên 1 bảng
+stargazer(reg1,reg2,type="text")
+```
+## GIAI DOAN 2: Ước lượng các mô hình ban đầu
+# Thay các biến RHAT cho R, YHAT cho Y ở vế phả các phương trình và ước lượng
+
+```{r  echo=TRUE}
+# Đặt lại mẫu - resample
+subsample=ch10bt14[2:32,1:4]
+subsample
+reg3=lm(R~YHAT+M+lag(M,1),data=subsample)
+reg4=lm(Y~RHAT+I,data=subsample)
+stargazer(reg3,reg4, type= "text")
+``` 
+## RÚT GỌN HAI GIAI ĐOẠN TRÊN  - 2SLS REGRESION
+```{r}
+# Máy tự động thực hiện hai giai đoạn. Có từ khóa để thực hiện 2SLS
+# Ký tự, các biến sau  "|" là các biến công cụ.
+```
+## CÁCH KHÁC, GỘP HAI GIAI ĐOẠN. CÁC BIẾN SAU  "|" LÀ CÁC BIẾN CÔNG CỤ 
+```{r}
+reg31=dynlm(R~Y+M+lag(M,1)|M+I+lag(M,1))
+reg41= dynlm(Y~R + I|M + lag(M,1)+I)
+stargazer(reg31,reg41, type="text")
+```
+
+## UOC LUONG HE PHUONG TRINH - JOINT ESTIMATION OF SYSTEM
+```{r}
+# CÁCH KHÁC-THỰC HIỆN TRÊN THỰC TẾ 
+# library(systemfit)
+# ĐỊNH NGHĨA HỆ PHƯƠNG TRÌNH
+eq.Laisuat= R~ Y+M+ lag(M,1)
+eq.Thunhap= Y~ R+I
+eq.system=list(eq.Thunhap, eq.Laisuat)
+instrum=~M+lag(M,1)+I
+my.sys=(systemfit(eq.system,inst=instrum,method="2SLS"))
+summary(my.sys)
+
+```

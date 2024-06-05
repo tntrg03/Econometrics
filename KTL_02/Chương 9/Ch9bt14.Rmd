@@ -1,0 +1,133 @@
+---
+title: "CH9BT14"
+author: "55_Truong Ngoc Thuy Trang"
+date: "2023-08-21"
+output: word_document
+---
+```{r}
+library(car)
+library(carData)
+library(zoo)
+library(urca)
+library(lmtest)
+library(tseries)
+library(systemfit)
+library(dynlm)
+library(dplyr)
+library(stargazer)#Trình bày kết quả hồi quy trên 1 bảng
+library(sandwich)
+library(survival)
+library(foreign)
+library(AER)
+library(readr)
+library(plm)
+```
+##Xét mô hình
+LM: Rt=alpha1 +alpha2*Mt+alpha*Yt+alpha4*M(t-1)+u1t (1)
+IS: Yt=bta1 +bta2*Rt+bta3*It+u2t                    (2)
+Ta có:K=4;M=2
+-Pt(1) định dạng đúng
+-Pt(2) vô định
+```{r}
+ch9bt14 <- read.delim("E:/KTL/KTL_02/Chương 9/ch9bt14.txt")
+Ch9bt14= ts(ch9bt14)
+Ch9bt14
+View(ch9bt14)
+
+```
+```{r}
+I = 
+R = ch9bt14$R
+M = ch9bt14$M
+Y = ch9bt14$Y
+I
+R
+M
+Y
+```
+```{r}
+plot(I)
+plot(R)
+plot(M)
+plot(Y)
+```
+##Giai đoạn 1:
+Xét phương trình rút gọn:
+Rt = a1+a2*Mt+a3*M(t-1)+a4*It (3)
+Yt = b1+b2*Mt+b3*M(t-1)+b4*It (4)
+
+```{r}
+#ƯỚc lượng mô hình(3)
+reg3=dynlm(data = ch9bt14,R~M+lag(M,1)+I)
+summary(reg3)
+ahat = coef(reg3)
+ahat
+```
+```{r}
+#Ước lượng mô hình (4)
+reg4 = dynlm(data = ch10bt14,Y~M+lag(M,1)+I)
+summary(reg4)
+bhat = coef(reg4)
+bhat
+```
+```{r}
+Rhat = fitted.values(reg3)
+Yhat = fitted.values(reg4)
+#Rhat
+#Yhat
+#Kết hợp Rhat và Yhat thành 1 vector b
+b = cbind(Rhat,Yhat)
+b
+```
+##Trình bày kết quả hồi quy của 3 hàm trên 1 bảng
+
+```{r}
+stargazer(reg3,reg4,type="text")
+```
+
+##Thay Rhat,Yhat vào 2 ptrinh ban đầu để UL
+LM: Rt=alpha1 +alpha2*Mt+alpha3*Yhat + alpha4*M(t-1) + u1t (1)
+IS: Yt=bta1 + bta2*Rhat + bta3*It+u2t                    (2)
+```{r}
+new = ch9bt14[2:32,1:4]
+new
+```
+
+
+```{r}
+reg1=dynlm(data=new , ts(R)~ts(M)+ts(Yhat)+L(ts(M),1))
+summary(reg1)
+```
+```{r}
+reg2 = dynlm(data=new,ts(Y)~ts(Rhat)+ts(I))
+summary(reg2)
+```
+```{r}
+stargazer(reg1,reg2, type =  "text")
+```
+
+##CÁCH 2
+```{r}
+reg31 = dynlm(data=ch9bt14,(R)~(Y)+ts(M)+L(ts(M),1)|ts(M)+ts(I)+L(ts(M),1))
+reg41 = dynlm(data=ch9bt14 ,(Y)~(R)+(I)|ts(M)+L(ts(M),1)+ts(I))
+stargazer(reg31,reg41,type = "text")
+```
+## Cách 3- Thực hiện trên thực tế
+```{r}
+ch9bt14 <- read.delim("E:/KTL/KTL_02/Chương 9/ch9bt14.txt")
+ch9bt14
+eq.laisuat = (R)~(Y)+(M)+lag((M),1)
+eq.thunhap = (Y)~(R)+(I)
+eq.system = list(eq.thunhap,eq.laisuat)
+instrum=~(M)+lag((M),1)+(I)
+my.sys = (systemfit(eq.system,inst  = instrum,method = "2SLS"))
+summary(my.sys)
+```
+
+
+
+
+
+
+
+

@@ -1,0 +1,113 @@
+---
+title: "panel101"
+author: "tntrg_03"
+date: "2023-09-17"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r  echo=TRUE}
+library(foreign) 
+library(car)
+library(lmtest)
+library(AER)
+library(plm)
+library(stargazer)
+library(readxl)
+library(ggplot2)
+
+
+```
+
+```{r}
+panel101=read.csv("E:/KTL/KTL_02/Chương 11/Panel101_new.csv")
+#View(panel101)
+dim(panel101)# đếm xem có bao nhiêu dòng,cột dữ liệu      
+head(panel101,1)#lấy ra dòng đầu tiên của dữ liệu
+coplot(y~x1|country, type="p", data=panel101)
+coplot # tạo biểu đồ phân tán trực quan hoá mối quan hệ của biến y và x1
+library(gplots)
+plotmeans(y ~ country, main="Heterogeineityacross countries", data=panel101)# trực quan hoá sự khác biệt của trung bình giữa các nhóm
+scatterplot(y~year|country, boxplots=FALSE, smooth=TRUE, reg.line=FALSE, data=panel101)
+
+```
+
+## PANEL MODELS
+
+# INPUT DATA
+
+## ƯỚC LƯỢNG GỘP POLS
+
+```{r}
+print('Phương pháp POLS=OLS')
+pols_1=lm(y~x1,data=panel101)
+summary(pols_1)
+print('"polling" được chọn trong phương pháp plm chính là OLS')
+pooling_1=plm(y~x1,data=panel101,index=c("country","year"),model="pooling") # 
+summary(pooling_1)
+
+```
+
+## ƯỚC LƯỢNG MÔ HÌNH TÁC ĐỘNG CỐ ĐỊNH-FEM
+
+```{r}
+# Testing for time-fixed effects- biến giả theo thời gian, gọi chung là SLDV-Structural Lagrange and Dummy Variable
+fixed_time=plm(y~x1+factor(year),data=panel101,index=c("country", "year"), model="within") # ,index=c("country","year"),model="within") # 
+summary(fixed_time)
+print('Các hệ số chặn')
+fixef(fixed_time)
+
+
+# Testing for individual-fixed effects 
+fixed_indi=plm(y~x1+factor(country)+x1*factor(country),data=panel101,index=c("country", "year"), model="within")
+summary(fixed_indi)
+scatterplot(fitted(fixed_indi)~panel101$x1|panel101$country, boxplots=FALSE, xlab="x1", ylab="yhat",smooth=FALSE)
+abline(lm(panel101$y~panel101$x1),lwd=3, col="red")
+
+print('Các hệ số chặn')
+fixef(fixed_indi)
+fixed_indi$coefficients
+```
+
+```{r}
+
+fixed_1=plm(y~x1,data=panel101,index=c("country", "year"), model="within")
+summary(fixed_1)
+print('Các hệ số chặn')
+fixef(fixed_1)
+#  Testing time-fixed effects. The null is that no time-fixed effects needed
+# pFtest(fixed, ols) # Testing for fixed effects, null: OLS better than fixed
+pFtest(fixed_1, pooling_1)
+bptest(fixed_1)
+```
+```{r}
+## kiểm tra tính đồng nhất của các hiệp biến giữa các quan sát trong mô hình
+plmtest(y~x1,data = panel101,effect = "twoways",type = "bp")
+```
+
+
+## ƯỚC LƯỢNG MO HÌNH TÁC ĐỘNG NGẪU NHIÊN REM
+
+```{r  echo=TRUE}
+random_1=plm(y~x1,data=panel101,index=c("country","year"),model="random") # random model
+summary(random_1)
+bptest(random_1)
+```
+
+## FEM HAY REM?
+
+```{r}
+# fixed_1=plm(y~x1,data=panel101,index=c("country", "year"), model="within") # 
+
+phtest(fixed_1,random_1) # Hausman test
+         
+```
+```{r}
+fixed_time1=plm(y~x1+x1*factor(year),data=panel101,index=c("country", "year"), model="within")
+summary(fixed_time1)
+
+```
+

@@ -1,0 +1,102 @@
+---
+title: "Poisson_crime"
+author: "tntrg_03"
+date: "2023-09-17"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r  echo=TRUE}
+library(foreign); library(car)
+library(lmtest)
+library(AER)
+library(caret)
+library(caTools)
+```
+
+## POSSION MODEL
+
+# INPUT DATA & TRAIN.SET, TEST.SET
+
+```{r  echo=TRUE}
+crime1 <- read.csv("E:/KTL/KTL_02/Chương 10/crime1.csv", sep=";")
+#View(crime1)
+dim(crime1)      
+head(crime1,2)
+split=sample.split(crime1,SplitRatio=0.8)
+split
+train.set=subset(crime1, split==TRUE)
+test.set=subset(crime1,split==FALSE)
+dim(train.set)
+dim(test.set)
+narr86=train.set$narr86
+# narr86
+head(narr86,2)
+```
+
+## UOC LUONG LOGIT TREN TRAIN.SET
+
+```{r  echo=TRUE}
+poiss.m1=glm(narr86~pcnv+avgsen+tottime+ptime86+inc86+black+hispan+born60,data=train.set,family="poisson")
+summary(poiss.m1)
+myHo=c("avgsen","tottime","born60")
+linearHypothesis(poiss.m1,myHo)
+poiss.m2=glm(narr86~pcnv+ptime86+inc86+black+hispan,data=train.set,family="poisson")
+summary(poiss.m2)
+
+```
+
+## MỘT SỐ KIỂM ĐỊNH
+
+```{r  echo=TRUE}
+confint(poiss.m2)
+
+cov.poiss.m2 <- vcovHC(poiss.m2, type="HC0")
+std.err <- sqrt(diag(cov.poiss.m2))
+r.est <- cbind(Estimate= coef(poiss.m2), "Robust SE" = std.err,
+"Pr(>|z|)" = 2 * pnorm(abs(coef(poiss.m2)/std.err), lower.tail=FALSE),
+LL = coef(poiss.m2) - 1.96 * std.err,
+UL = coef(poiss.m2) + 1.96 * std.err)
+r.est
+```
+
+```{r}
+
+prob_m2.train=fitted(poiss.m2) 
+head(fitted(poiss.m2),1)
+# prob_m2.train
+prob_m2.factor = ifelse(prob_m2.train> 0.5,1, 0)
+# Proportion of correctly classified observations:
+TLDBD=mean(prob_m2.factor, na.rm=TRUE)
+print("Ty lệ dự bao đúng trên train.set =")
+TLDBD
+
+```
+
+## ƯỚC LƯỢNG MÔ HÌNH TRÊN TEST.SET
+
+```{r}
+prob_m2.test <- predict(poiss.m2, test.set,type="response")  # predicted scores 
+length(prob_m2.test)
+prob_m2.test.factor <- ifelse(prob_m2.test > 0.5, 1,0)
+# prob_L.test.classes
+# Proportion of correctly classified observations:
+TLDBD_m2.test=mean(prob_m2.test.factor, na.rm=TRUE)
+print("Tỷ lệ dự báo đúng trên test.set=")
+TLDBD_m2.test
+
+```
+
+## MOT SO PHAN TICH
+
+```{r}
+print('Tính APE- AVERAGE PAARTIAL EFFECTS- ảnh hưởng riêng trung bình của từng biến')
+Aprob_m2=mean(prob_m2.train)
+APE_poiss=coef(poiss.m2)*Aprob_m2
+print('APE_poiss=')  
+APE_poiss
+
+```

@@ -1,0 +1,47 @@
+---
+title: "Chương4 Bài tập 6"
+author: "tntrg03"
+date: "2023-02-24"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Cài thư viện
+library(lmtest)
+library(ggplot2)
+```
+```{r}
+ # Thu nhap(LWAGE) phụ thuộc vào kinh nghiệm(GRADE),công đoàn(UNION)
+ # wage= thu nhap; grade=nam kinh nghiem; trade = 1 
+ #neu tham gia cong doan,=0 neu khong tham gia 
+ ch4bt6_m <- read.delim("E:/KTL/KTL_01/Chương4/ch4bt6_m.txt")
+ ch4bt6_m
+ summary(ch4bt6_m)
+```
+```{r}
+# gán biến
+lwage=ch4bt6_m$LWAGE
+grade=ch4bt6_m$GRADE
+union=ch4bt6_m$UNION
+#XÉT MÔ HÌNH HỒI QUY
+reg=lm(log(lwage) ~ grade+union)
+summary(reg)
+```
+```{r}
+#ẢNH HUONG TUONG TAC GRADE vs UNION
+# XÉT MÔ HÌNH
+reg1=lm(log(lwage)~grade+union+grade*union)
+summary(reg1)
+```
+```{r}
+#ln(wage)=beta1+beta2*grade+beta3*union+u
+#Ho:beta3=0,2
+reg3=lm(log(lwage)~grade+union)
+summary(reg3)
+linearHypothesis(reg3,c("union=0.2"))
+```
+
